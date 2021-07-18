@@ -130,6 +130,7 @@ int m_flGravity;
 int S_m_vecViewOffset;
 int IsPlayer;
 int AcceptInput;
+int S_m_pPhysicsObject;
 
 // CBasePlayer
 int m_fFlags;
@@ -250,6 +251,9 @@ int OnGameOverlayActivated;
 // surfacedata_t
 int jumpFactor;
 
+// IPhysicsEnvironment
+int SetGravity;
+
 // IPhysicsObject
 int IsAsleep;
 int IsCollisionEnabled;
@@ -261,6 +265,7 @@ int GetVelocity;
 int SetPosition;
 int SetVelocity;
 int EnableGravity;
+int Wake;
 
 // IVideoMode
 int GetModeWidth;

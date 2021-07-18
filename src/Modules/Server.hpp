@@ -57,6 +57,7 @@ public:
     CGlobalVars* gpGlobals = nullptr;
     CEntInfo* m_EntPtrArray = nullptr;
     IHandleEntity* portalGun = nullptr;
+    void **physenv = nullptr;
 
     int tickCount = 0;
 

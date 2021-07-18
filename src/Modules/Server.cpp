@@ -614,6 +614,13 @@ bool Server::Init()
 
     NetMessage::RegisterHandler(RESET_COOP_PROGRESS_MESSAGE_TYPE, &resetCoopProgress);
 
+    uintptr_t air_dens_cb = (uintptr_t)Command("air_density").ThisPtr()->m_pCommandCallback;
+#ifdef _WIN32
+    TODO
+#else
+    this->physenv = (void **)(air_dens_cb + 7 + *(uint32_t *)(air_dens_cb + 9) + *(uint32_t *)(air_dens_cb + 22));
+#endif
+
     offsetFinder->ServerSide("CBasePlayer", "m_nWaterLevel", &Offsets::m_nWaterLevel);
     offsetFinder->ServerSide("CBasePlayer", "m_iName", &Offsets::m_iName);
     offsetFinder->ServerSide("CBasePlayer", "m_vecVelocity[0]", &Offsets::S_m_vecVelocity);
@@ -663,6 +670,151 @@ void Server::Shutdown()
 #endif
     Interface::Delete(this->g_GameMovement);
     Interface::Delete(this->g_ServerGameDLL);
+}
+
+static void setGravity(const Vector &grav) {
+    if (!*server->physenv) return;
+
+    using _SetGravity = void (__rescall *)(void *thisptr, const Vector &gravity);
+    auto SetGravity = Memory::VMT<_SetGravity>(*server->physenv, Offsets::SetGravity);
+    SetGravity(*server->physenv, grav);
+
+    for (int i = 0; i < Offsets::NUM_ENT_ENTRIES; ++i) {
+        void* ent = server->m_EntPtrArray[i].m_pEntity;
+        if (!ent) continue;
+
+        void *physObject = *(void **)((uintptr_t)ent + Offsets::S_m_pPhysicsObject);
+        if (!physObject) continue;
+
+        using _IsAsleep = bool (__rescall *)(void *thisptr);
+        auto IsAsleep = Memory::VMT<_IsAsleep>(physObject, Offsets::IsAsleep);
+
+        if (IsAsleep(physObject)) {
+            using _Wake = void (__rescall *)(void *thisptr);
+            auto Wake = Memory::VMT<_Wake>(physObject, Offsets::Wake);
+
+            Wake(physObject);
+        }
+    }
+}
+
+static int g_disableCamGravityUntil = -1;
+static int g_spinnyFreezeUntil = -1;
+
+ON_EVENT(SESSION_END) {
+    g_disableCamGravityUntil = -1;
+    g_spinnyFreezeUntil = -1;
+}
+
+ON_EVENT(PRE_TICK) {
+    if (!event.simulating) return;
+
+    int tick = session->GetTick();
+
+    if (g_disableCamGravityUntil != -1 && tick >= g_disableCamGravityUntil) {
+        g_disableCamGravityUntil = -1;
+    }
+
+    if (g_spinnyFreezeUntil != -1 && tick >= g_spinnyFreezeUntil) {
+        g_spinnyFreezeUntil = -1;
+    }
+
+    if (g_disableCamGravityUntil == -1) {
+        auto ang = engine->GetAngles(0);
+
+        float pitch = ang.x * 6.28319f / 360.0f;
+        float yaw = ang.y * 6.28319 / 360.0f;
+        
+        Vector forward{ cos(yaw) * cos(pitch), sin(yaw) * cos(pitch), -sin(pitch) };
+
+        float grav = Variable("sv_gravity").GetFloat();
+        forward.x *= grav;
+        forward.y *= grav;
+        forward.z *= grav;
+
+        setGravity(forward);
+    }
+
+    if (g_spinnyFreezeUntil != -1) {
+        auto player = client->GetPlayer(1);
+        Vector playerPos = player ? client->GetAbsOrigin(player) + client->GetViewOffset(player) : Vector{ 0, 0, 0 };
+
+        for (int i = 0; i < Offsets::NUM_ENT_ENTRIES; ++i) {
+            void* ent = server->m_EntPtrArray[i].m_pEntity;
+            if (!ent) continue;
+
+            void *physObject = *(void **)((uintptr_t)ent + Offsets::S_m_pPhysicsObject);
+            if (!physObject) continue;
+
+            using _SetVelocity = void (__rescall *)(void *thisptr, const Vector &velocity, const Vector &angular);
+            auto SetVelocity = Memory::VMT<_SetVelocity>(physObject, Offsets::SetVelocity);
+
+            using _GetVelocity = void (__rescall *)(void *thisptr, Vector *velocity, Vector *angular);
+            auto GetVelocity = Memory::VMT<_GetVelocity>(physObject, Offsets::GetVelocity);
+
+            Vector angular;
+            GetVelocity(physObject, nullptr, &angular);
+
+            if (angular.Length() < 50) {
+                angular.x = rand() % 100 + 50;
+                angular.y = rand() % 100 + 50;
+                angular.z = rand() % 100 + 50;
+
+                if (rand() % 2) angular.x = -angular.x;
+                if (rand() % 2) angular.y = -angular.y;
+                if (rand() % 2) angular.z = -angular.z;
+            }
+
+            Vector pos = server->GetAbsOrigin(ent);
+
+            Vector vel = playerPos - pos;
+            float dist = vel.Length();
+            vel.x *= 50 / dist;
+            vel.y *= 50 / dist;
+            vel.z *= 50 / dist;
+
+            SetVelocity(physObject, vel, angular);
+        }
+    }
+}
+
+CON_COMMAND(sar_gravity_override, "sar_gravity_override <x> <y> <z> <secs> - override gravity to the given vector for the given number of seconds; the vector will be normalized before being set\n")
+{
+    if (args.ArgC() != 5) {
+        console->Print(sar_gravity_override.ThisPtr()->m_pszHelpString);
+        return;
+    }
+
+    if (!*server->physenv) {
+        console->Print("No active physics environment\n");
+        return;
+    }
+
+    float x = atof(args[1]);
+    float y = atof(args[2]);
+    float z = atof(args[3]);
+
+    float total = sqrt(x*x + y*y + z*z);
+
+    x /= total;
+    y /= total;
+    z /= total;
+
+    g_disableCamGravityUntil = session->GetTick() + (int)(atof(args[4]) * 60.0f);
+    setGravity(Vector{x, y, z});
+}
+
+CON_COMMAND(sar_gravity_player, "sar_gravity_player <secs> - stop all props moving for the given number of seconds")
+{
+    if (args.ArgC() != 2) {
+        console->Print(sar_gravity_player.ThisPtr()->m_pszHelpString);
+        return;
+    }
+
+    int duration = atof(args[1]);
+    setGravity(Vector{0, 0, 0});
+
+    g_disableCamGravityUntil = g_spinnyFreezeUntil = session->GetTick() + (int)(atof(args[1]) * 60.0f);
 }
 
 Server* server;

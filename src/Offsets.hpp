@@ -130,6 +130,7 @@ extern int m_flGravity;
 extern int S_m_vecViewOffset;
 extern int IsPlayer;
 extern int AcceptInput;
+extern int S_m_pPhysicsObject;
 
 // CBasePlayer
 extern int m_fFlags;
@@ -250,6 +251,9 @@ extern int OnGameOverlayActivated;
 // surfacedata_t
 extern int jumpFactor;
 
+// IPhysicsEnvironment
+extern int SetGravity;
+
 // IPhysicsObject
 extern int IsAsleep;
 extern int IsCollisionEnabled;
@@ -261,6 +265,7 @@ extern int GetVelocity;
 extern int SetPosition;
 extern int SetVelocity;
 extern int EnableGravity;
+extern int Wake;
 
 // IVideoMode
 extern int GetModeWidth;

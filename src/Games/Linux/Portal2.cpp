@@ -161,11 +161,13 @@ void Portal2::LoadOffsets()
     ClearAllOverlays = 16; // CIVDebugOverlay
     MAX_SPLITSCREEN_PLAYERS = 2; // maxplayers
     OnGameOverlayActivated = 152; // CSteam3Client
+    SetGravity = 4; // IPhysicsEnvironment
     IsAsleep = 3; // IPhysicsObject
     IsCollisionEnabled = 7; // IPhysicsObject
     IsGravityEnabled = 8; // IPhysicsObject
     IsDragEnabled = 9; // IPhysicsObject
     IsMotionEnabled = 10; // IPhysicsObject
+    Wake = 25; // IPhysicsObject
     GetPosition = 49; // IPhysicsObject
     GetVelocity = 53; // IPhysicsObject
     SetPosition = 47; // IPhysicsObject
@@ -216,6 +218,7 @@ void Portal2::LoadOffsets()
     player = 4; // CPortalGameMovement::PlayerMove
     m_MoveType = 226; // CBasePlayer::UpdateStepSound
     m_iClassName = 104; // CBaseEntity
+    S_m_pPhysicsObject = 340; // CBaseEntity
     S_m_vecAbsOrigin = 468; // CBaseEntity
     S_m_angAbsRotation = 480; // CBaseEntity
     m_iEFlags = 208; // CBaseEntity
