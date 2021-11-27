@@ -27,6 +27,7 @@
 #include "Features/Summary.hpp"
 #include "Features/Tas/TasController.hpp"
 #include "Features/Tas/TasPlayer.hpp"
+#include "Features/Tas/TasSocket.hpp"
 #include "Features/Teleporter.hpp"
 #include "Features/Timer/PauseTimer.hpp"
 #include "Features/Timer/Timer.hpp"
