@@ -31,7 +31,6 @@ void TasSocket::enable() {
 		return;
 	}
 	this->tcpListener.setBlocking(false);
-	
 
 	console->Print("TCP Listener listening! Port: %hu\n", this->tcpListener.getLocalPort());
 }
@@ -57,7 +56,7 @@ void TasSocket::receive() {
 		this->clientConnected = false;
 		return;
 	}
-	//console->Print("Packet received: %s Received: %lu\n", data, received);
+	console->Print("Packet received: %s Received: %lu\n", data, received);
 
 	std::vector<std::string> arguments;
 	std::istringstream stream(data);
