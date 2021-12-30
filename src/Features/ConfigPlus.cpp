@@ -140,6 +140,16 @@ CON_COMMAND_F(svar_get, "svar_get <variable> - get the value of a svar\n", FCVAR
 	console->Print("%s = %s\n", args[1], GetSvar({args[1]}).c_str());
 }
 
+CON_COMMAND_F(svar_list, "svar_list - prints out all of the defined svars\n", FCVAR_DONTRECORD) {
+	if (args.ArgC() != 1) {
+		return console->Print(svar_list.ThisPtr()->m_pszHelpString);
+	}
+
+	for (auto &element : g_svars) {
+		console->Print("%s: %s\n", element.first.c_str(), element.second.c_str());
+	}
+}
+
 CON_COMMAND_F(svar_count, "svar_count - prints a count of all the defined svars\n", FCVAR_DONTRECORD) {
 	if (args.ArgC() != 1) {
 		return console->Print(svar_count.ThisPtr()->m_pszHelpString);
