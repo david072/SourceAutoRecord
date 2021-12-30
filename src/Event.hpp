@@ -42,6 +42,7 @@ namespace Event {
 		FRAME,
 		ORANGE_READY,
 		CONFIG_EXEC,
+		TAS_END,
 	};
 
 	template <EventType E>

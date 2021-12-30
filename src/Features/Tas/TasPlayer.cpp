@@ -265,6 +265,7 @@ void TasPlayer::Stop(bool interrupted) {
 	SetPlaybackVars(false);
 
 	engine->SetAdvancing(false);
+	Event::Trigger<Event::TAS_END>({});
 }
 
 void TasPlayer::Pause() {
